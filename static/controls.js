@@ -14,8 +14,8 @@ $(document).ready(function(){
 	$("#wheel").mousedown(function() {
 		following_mouse = true;
 		$(document).mousemove(function(e) {
-			rel_x = parseFloat(e.pageX-wheel_offset.left);
-			rel_y = parseFloat(e.pageY-wheel_offset.top);
+			rel_x = parseInt(e.pageX-wheel_offset.left);
+			rel_y = parseInt(e.pageY-wheel_offset.top);
 			move(rel_x, rel_y);
 		});
 	});
@@ -52,6 +52,7 @@ $(document).ready(function(){
 		if (x>wheel_size) x=wheel_size;
 		if (y>wheel_size) y=wheel_size;
 
+
 		current_x = x;
 		current_y = y;
 
@@ -60,7 +61,7 @@ $(document).ready(function(){
 		// I only send the request if the dot has been moved by at least 5px
 		if (diff>=5) { 
 			$.ajax({
-				url:'/move', 
+				url:'/motors', 
 				data:{
 					x: x-wheel_size/2,
 					y: -y+wheel_size/2

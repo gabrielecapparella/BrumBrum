@@ -3,15 +3,16 @@
 from flask import Flask, render_template, request
 import RPi.GPIO as GPIO
 import signal
+import serial
 
 master = Flask(__name__)
 pins = {
 	'en1': 16,
 	'in1': 20,
 	'in2': 21,
-	'en2': 14,
-	'in3': 15,
-	'in4': 18	
+	'en2': 8,
+	'in3': 7,
+	'in4': 1	
 }
 
 class DC_Motor:
@@ -42,23 +43,24 @@ def index():
 	return render_template('index.html')
 
 
-@master.route('/move')
+@master.route('/motors')
 def move():
-	x = float(request.args['x'])
-	y = float(request.args['y'])
-	print('args:', x, y)
+	x = int(request.args['x'])
+	y = int(request.args['y'])
+	command = '<0,{},{}>'.format(x, y).encode()
+	master.ser.write(command)
 
-	if y==0:
-		master.motor_l.set_state(x)
-		master.motor_r.set_state(-x)
-	else:
-		slow = y-((abs(x*y)/100)*(y/abs(y))) # magic
-		if x>0:
-			master.motor_l.set_state(y)
-			master.motor_r.set_state(slow)
-		else:
-			master.motor_l.set_state(slow)
-			master.motor_r.set_state(y)
+	# if y==0:
+	# 	master.motor_l.set_state(x)
+	# 	master.motor_r.set_state(-x)
+	# else:
+	# 	slow = y-((abs(x*y)/100)*(y/abs(y))) # magic
+	# 	if x>0:
+	# 		master.motor_l.set_state(y)
+	# 		master.motor_r.set_state(slow)
+	# 	else:
+	# 		master.motor_l.set_state(slow)
+	# 		master.motor_r.set_state(y)
 
 	return 'ok'
 
@@ -73,7 +75,8 @@ def teardown_handler(signal, frame):
 	raise SystemExit
 
 
-motors_setup()
+#motors_setup()
 
-signal.signal(signal.SIGINT, teardown_handler)
+#signal.signal(signal.SIGINT, teardown_handler)
+master.ser = serial.Serial('/dev/ttyS0', 9600)
 master.run('0.0.0.0', 8080)
