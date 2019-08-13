@@ -47,20 +47,22 @@ def index():
 def move():
 	x = int(request.args['x'])
 	y = int(request.args['y'])
-	command = '<0,{},{}>'.format(x, y).encode()
-	master.ser.write(command)
 
-	# if y==0:
-	# 	master.motor_l.set_state(x)
-	# 	master.motor_r.set_state(-x)
-	# else:
-	# 	slow = y-((abs(x*y)/100)*(y/abs(y))) # magic
-	# 	if x>0:
-	# 		master.motor_l.set_state(y)
-	# 		master.motor_r.set_state(slow)
-	# 	else:
-	# 		master.motor_l.set_state(slow)
-	# 		master.motor_r.set_state(y)
+	if y==0:
+		l = x
+		r = -x
+	else:
+		slow = int(y-((abs(x*y)/100)*sign(y))) # magic
+		if x>0:
+			l = y
+			r = slow
+		else:
+			l = slow
+			r = y
+	
+	print('<0,{},{}>'.format(l, r))
+	command = '<0,{},{}>'.format(l, r).encode()
+	master.ser.write(command)
 
 	return 'ok'
 
@@ -74,9 +76,15 @@ def teardown_handler(signal, frame):
 	GPIO.cleanup()
 	raise SystemExit
 
+def sign(n):
+	if n>0: return 1
+	elif n<0: return -1
+	return 0
+
 
 #motors_setup()
 
 #signal.signal(signal.SIGINT, teardown_handler)
-master.ser = serial.Serial('/dev/ttyS0', 9600)
-master.run('0.0.0.0', 8080)
+if __name__ == '__main__':
+	master.ser = serial.Serial('/dev/ttyS0', 9600)
+	master.run('0.0.0.0', 8080)

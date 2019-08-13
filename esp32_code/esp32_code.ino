@@ -38,19 +38,19 @@ class Motor {
   }
 };
 
-const int EN_1 = 21;
-const int IN_1 = 4;
-const int IN_2 = 16;
+const int PWM_L = 23;
+const int IN_1_L = 17;
+const int IN_2_L = 22;
 
-const int EN_2 = 23;
-const int IN_3 = 22;
-const int IN_4 = 17;
+const int PWM_R = 21;
+const int IN_1_R = 4;
+const int IN_2_R = 16;
 
 const int PWM_FREQ = 100;
 const int PWM_RES = 8; // 0-255
 
-Motor motor_left = Motor(EN_1, IN_1, IN_2, PWM_FREQ, PWM_RES, 0);
-Motor motor_right = Motor(EN_2, IN_3, IN_4, PWM_FREQ, PWM_RES, 1);
+Motor motor_left = Motor(PWM_L, IN_1_L, IN_2_L, PWM_FREQ, PWM_RES, 0);
+Motor motor_right = Motor(PWM_R, IN_1_R, IN_2_R, PWM_FREQ, PWM_RES, 1);
 
 enum Instruction { MOTOR, SERVO, DISTANCE };
 
@@ -68,9 +68,18 @@ void loop() {
   if (new_command) {
     switch ((Instruction) command[0]) {
       case MOTOR:
-        int x = command[1];
-        int y = command[2];
-        if (y==0) {
+        //int l = (int) (command[1]*255/100);
+        //int r = (int) (command[2]*255/100);
+        
+        int l = 155*sign(command[1]) + command[1];
+        int r = 155*sign(command[2]) + command[2];
+        //if (l==155) l = 0;
+        //if (r==155) r = 0;
+
+        motor_left.set_speed(l);
+        motor_right.set_speed(r);
+        
+        /*if (y==0) {
           motor_left.set_speed(x);
           motor_right.set_speed(-x);
         } else {
@@ -86,7 +95,7 @@ void loop() {
             motor_left.set_speed(slower);
             motor_right.set_speed(y);
           }
-        }
+        }*/
     }
     new_command = false;
   }
