@@ -52,10 +52,10 @@ class Motor {
       this->speed = (float)(encoder_pulses*1000) / (float)(elapsed*this->encoder_pulses_per_turn);
       this->encoder_pulses = 0;
       this->last_measurement = now;
-//      if (this->speed>0) {
-//        Serial.print(this->speed);
-//        Serial.print(',');
-//      }
+      if (this->speed>0) {
+        Serial.print(this->speed);
+        Serial.print(',');
+      }
     }
 
     return this->speed;
@@ -107,20 +107,19 @@ void loop() {
   recv_command();
   if (new_command) {
     switch ((Instruction) command[0]) {
-      case MOTOR: {
+      case MOTOR:
         int l = 155*sign(command[1]) + command[1];
         int r = 155*sign(command[2]) + command[2];
 
         motor_left.set_speed(l);
         motor_right.set_speed(r);
-      } break;
-      case SPEED: {
+        break;
+      case SPEED:
         Serial.print("<SPEED_L:");
         Serial.print(motor_left.speed);
         Serial.print(", SPEED_R:");
         Serial.print(motor_right.speed);
         Serial.println(">");
-      } break;
     }
     new_command = false;
   }
