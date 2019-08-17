@@ -1,20 +1,28 @@
 class Motor {
   private:
-    int en;
     int fwd;
     int rev;
-    int pwm_freq;
-    int pwm_res;
     int pwm_ch;
+    int encoder_pulses_per_turn;
+    volatile int encoder_pulses;
+    int speed_update_freq;
+    int last_pulse;
+    int last_measurement;
 
   public:
-    Motor(int en, int in1, int in2, int pwm_f, int pwm_r, int pwm_ch) {
-      this->en = en;
+    float speed; // pulses per interval
+    
+    Motor(int en, int in1, int in2, int pwm_f, int pwm_r, int pwm_ch, int enc_pulses_per_turn, int enc_freq) {
       this->fwd = in1;
       this->rev = in2;
-      this->pwm_freq = pwm_f;
-      this->pwm_res = pwm_r;
       this->pwm_ch = pwm_ch;
+
+      this->encoder_pulses_per_turn = enc_pulses_per_turn;
+      this->speed_update_freq = enc_freq;
+      
+      this->encoder_pulses = 0;
+      this->speed = 0;
+      this->last_measurement = millis();
 
       pinMode(en, OUTPUT);
       pinMode(in1, OUTPUT);
@@ -34,7 +42,27 @@ class Motor {
       digitalWrite(fwd, LOW);
       digitalWrite(rev, LOW);   
     }
-    ledcWrite(pwm_ch, abs(speed));  
+    ledcWrite(pwm_ch, abs(speed));
+  }
+
+  float get_speed() { // Round per second
+    int now = millis();
+    int elapsed = now - this->last_measurement;
+    if (elapsed >= this->speed_update_freq) {
+      this->speed = (float)(encoder_pulses*1000) / (float)(elapsed*this->encoder_pulses_per_turn);
+      this->encoder_pulses = 0;
+      this->last_measurement = now;
+      if (this->speed>0) {
+        Serial.print(this->speed);
+        Serial.print(',');
+      }
+    }
+
+    return this->speed;
+  }
+
+  void update_encoder() {
+    this->encoder_pulses++;
   }
 };
 
@@ -49,10 +77,15 @@ const int IN_2_R = 16;
 const int PWM_FREQ = 100;
 const int PWM_RES = 8; // 0-255
 
-Motor motor_left = Motor(PWM_L, IN_1_L, IN_2_L, PWM_FREQ, PWM_RES, 0);
-Motor motor_right = Motor(PWM_R, IN_1_R, IN_2_R, PWM_FREQ, PWM_RES, 1);
+const int ENCODER_R = 15;
+const int ENCODER_L = 15; // REMOVE BEFORE FLIGHT
+const int PULSES_PER_TURN = 10;
+const int ENC_FREQ = 1000;
 
-enum Instruction { MOTOR, SERVO, DISTANCE };
+Motor motor_left = Motor(PWM_L, IN_1_L, IN_2_L, PWM_FREQ, PWM_RES, 0, PULSES_PER_TURN, ENC_FREQ);
+Motor motor_right = Motor(PWM_R, IN_1_R, IN_2_R, PWM_FREQ, PWM_RES, 1, PULSES_PER_TURN, ENC_FREQ);
+
+enum Instruction { MOTOR, SPEED, SERVO, DISTANCE };
 
 char received_chars[32];
 boolean new_command = false;
@@ -61,9 +94,16 @@ int command[6]; // 1 command + 5 parameters
 void setup() {
   Serial.begin(9600);
   Serial.println("Starting");
+
+  // Attaching interrupts here is necessary because I can't give an instance method to attachInterrupt
+  attachInterrupt(digitalPinToInterrupt(ENCODER_L), []{motor_left.update_encoder();}, RISING);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_R), []{motor_right.update_encoder();}, RISING);
 }
 
 void loop() {
+  //motor_left.get_speed();
+  motor_right.get_speed();
+  
   recv_command();
   if (new_command) {
     switch ((Instruction) command[0]) {
@@ -78,27 +118,13 @@ void loop() {
 
         motor_left.set_speed(l);
         motor_right.set_speed(r);
-        
-        /*if (y==0) {
-          motor_left.set_speed(x);
-          motor_right.set_speed(-x);
-        } else {
-          int slower = (int) (y-(abs(x*y)/100*sign(y))); // magic
-          
-          slower = (int) (slower*255/100);
-          y = (int) (y*255/100);
-          
-          if (x>0) {
-            motor_left.set_speed(y);
-            motor_right.set_speed(slower);
-          } else {
-            motor_left.set_speed(slower);
-            motor_right.set_speed(y);
-          }
-        }*/
     }
     new_command = false;
   }
+}
+
+void update_encoder() {
+  
 }
 
 void recv_command() {
