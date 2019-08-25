@@ -52,12 +52,7 @@ class Motor {
       this->speed = (float)(encoder_pulses*1000) / (float)(elapsed*this->encoder_pulses_per_turn);
       this->encoder_pulses = 0;
       this->last_measurement = now;
-//      if (this->speed>0) {
-//        Serial.print(this->speed);
-//        Serial.print(',');
-//      }
     }
-
     return this->speed;
   }
 
@@ -66,21 +61,21 @@ class Motor {
   }
 };
 
-const int PWM_L = 23;
-const int IN_1_L = 17;
-const int IN_2_L = 22;
+const int PWM_L = 21;
+const int IN_1_L = 18;
+const int IN_2_L = 19;
 
-const int PWM_R = 21;
-const int IN_1_R = 4;
+const int PWM_R = 4;
+const int IN_1_R = 17;
 const int IN_2_R = 16;
 
 const int PWM_FREQ = 100;
 const int PWM_RES = 8; // 0-255
 
 const int ENCODER_R = 15;
-const int ENCODER_L = 5;
-const int PULSES_PER_TURN = 10;
-const int ENC_FREQ = 1000;
+const int ENCODER_L = 2;
+const int PULSES_PER_TURN = 20;
+const int ENC_FREQ = 1000; // 1sec
 
 Motor motor_left = Motor(PWM_L, IN_1_L, IN_2_L, PWM_FREQ, PWM_RES, 0, PULSES_PER_TURN, ENC_FREQ);
 Motor motor_right = Motor(PWM_R, IN_1_R, IN_2_R, PWM_FREQ, PWM_RES, 1, PULSES_PER_TURN, ENC_FREQ);
@@ -96,8 +91,8 @@ void setup() {
   Serial.println("Starting");
 
   // Attaching interrupts here is necessary because I can't give an instance method to attachInterrupt
-  attachInterrupt(digitalPinToInterrupt(ENCODER_L), []{motor_left.update_encoder();}, RISING);
-  attachInterrupt(digitalPinToInterrupt(ENCODER_R), []{motor_right.update_encoder();}, RISING);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_L), []{motor_left.update_encoder();}, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_R), []{motor_right.update_encoder();}, CHANGE);
 }
 
 void loop() {
